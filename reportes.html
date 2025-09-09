@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>TTC Fuel Control</title>
+
+  <!-- Ícono de pestaña -->
+  <link rel="icon" type="image/png" href="logo.png">
+
+  <!-- Fuente Rajdhani -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600&display=swap" rel="stylesheet">
+
+  <!-- ============  E S T I L O S  ============ -->
+  <style>
+    :root{
+      /* alto real de la barra sticky ─ usa el que mejor encaje */
+      --sticky-offset:60px;
+    }
+
+    /* —— Contenedor principal —— */
+    #fuel-control-total{
+      font-family:Arial,Helvetica,sans-serif;
+      margin:0 20px 20px;
+    }
+
+    /* —— Barra STICKY —— */
+    .sticky-bar{
+      position:sticky;top:0;z-index:999;background:#fff;
+      padding:4px 0;
+      box-shadow:0 2px 6px rgba(0,0,0,.15);
+    }
+    .sticky-header{
+      display:flex;align-items:center;justify-content:space-between;
+      margin-bottom:2px;
+    }
+
+    /* —— Título con efecto 3D —— */
+    .sticky-header h1{
+      font-family:'Rajdhani',sans-serif;
+      font-size:38px;color:#030303;margin:0;line-height:1;
+      text-shadow:
+        1px 1px 0  #b0bec5,
+        2px 2px 0  #90a4ae,
+        3px 3px 0  #78909c,
+        4px 4px 0  #607d8b,
+        5px 5px 10px rgba(0,0,0,.35);
+    }
+    .sticky-header .logo{height:48px;object-fit:contain;}
+
+    /* —— Flex helpers —— */
+    .search-container,.report-buttons{display:inline-flex;align-items:flex-start;flex-wrap:wrap;gap:12px;}
+
+    /* —— TARJETAS —— */
+    .card{display:flex;flex-direction:column;border-radius:4px;box-shadow:0 2px 4px rgba(0,0,0,.12);overflow:hidden;background:#fff;}
+    .card-header{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;font-weight:bold;color:#fff;}
+    .card-body{display:flex;align-items:center;gap:18px;padding:12px 16px;}
+
+    .unidades-card{width:260px;}
+    .unidades-card .card-header{background:linear-gradient(135deg,#f7b733,#ffd86b);}
+    .unidades-card .card-body{padding:16px;}
+    #unit-select{width:100%;padding:6px 10px;font-size:14px;border:1px solid #ccc;border-radius:4px;background:#fff;color:#333;height:36px;}
+
+    .period-card{width:330px;}
+    .period-card .card-header{background:linear-gradient(135deg,#008080,#c0c0c0);}
+    .period-input{width:100%;border:none;border-bottom:2px solid #ccc;padding:6px 0;font-size:14px;background:transparent;color:#333;height:30px;cursor:pointer;}
+    .period-input:focus{outline:none;border-bottom-color:#007bff;}
+
+    .botonera-card{width:fit-content;padding-bottom:4px;}
+    .botonera-card .card-header{background:linear-gradient(135deg,#6c757d,#FFDAB9);}s
+    .botonera-card .card-body{flex-wrap:wrap;gap:8px;}
+
+    /* ================= Botonera ================= */
+
+    /* ❶  botón Hoy, Ayer, Mes y Limpiar */
+    #filter-hoy,
+    #filter-ayer,            
+    #filter-mes,
+    #clear-btn{
+      min-width:80px;
+      padding:6px 10px;
+      border:none;
+      border-radius:4px;
+      height:36px;
+      color:#fff;
+      cursor:pointer;
+      background:linear-gradient(135deg,#C0C0C0,#7a7a7a);
+      transition:.2s;
+    }
+
+    /* ❷  efecto hover */
+    #filter-hoy:hover,
+    #filter-ayer:hover,      
+    #filter-mes:hover,
+    #clear-btn:hover{
+      filter:brightness(1.1);
+    }
+
+    #export-excel,#export-pdf{
+      width:44px;height:36px;padding:0;font-size:20px;color:#fff;border:none;border-radius:4px;
+      display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.2s;}
+    #export-excel{background:linear-gradient(135deg,#28a745,#1e7e34);}
+    #export-excel:hover,#export-pdf:hover{filter:brightness(1.1);}
+
+    /* —— Botones de sección y mantenimiento —— */
+    .report-buttons{margin-top:15px;}
+    .report-btn,.nav-btn{
+      min-width:160px;padding:6px 14px;border:none;border-radius:4px;height:36px;
+      display:inline-flex;align-items:center;gap:6px;
+      color:#fff;cursor:pointer;transition:.2s;
+      background:linear-gradient(135deg,#007bff,#0056b3);
+    }
+    .report-btn:hover,.nav-btn:hover{filter:brightness(1.1);}
+    .report-btn.active{background:linear-gradient(135deg,#28a745,#1e7e34)!important;}
+    .nav-btn{background:linear-gradient(135deg,#ff9800,#ff5722);}   /* mantenimiento */
+
+    /* —— Secciones —— */
+    .report-section{display:none;margin-top:20px;overflow:visible;} /* overflow:visible permite sticky */
+    .report-section.active{display:block;}
+    .report-section h2{display:none;}
+
+    /* —— Tablas —— */
+    .report-table{
+      width:100%;
+      border-collapse:separate;   /*  ⬅️  cambio clave (antes collapse) */
+      border-spacing:0;           /*  ⬅️  para que no se vean huecos     */
+    }
+    .report-table th,.report-table td{border:1px solid #ccc;padding:8px 12px;text-align:left;vertical-align:top;}
+
+    /* Cabecera pegajosa */
+    .report-table thead th{
+      position:sticky;
+      top:calc(var(--sticky-offset) + 4px);  /*  ⬅️  ajuste para despegarse  */
+      z-index:2;
+      background:#f5f5f5;
+      box-shadow:0 2px 3px rgba(0,0,0,.08);
+      border-bottom:2px solid #d0d0d0;
+    }
+
+    /* Filas pares en amarillo */
+    .report-table tbody tr:nth-child(even){background:#fbffcc;}
+
+    .unit-first{background:#cfe2ff!important;}
+
+    /* —— Grid para diales —— */
+    #gauges-dynamic{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:32px;}
+    .gauge-set{max-width:420px;width:100%;box-sizing:border-box;padding:18px;gap:14px;border:1px solid #d0d0d0;border-radius:10px;background:#f3f2f2;box-shadow:0 1px 3px rgba(0,0,0,.08);display:flex;flex-direction:column;align-items:center;}
+
+    #niveles-fuel .report-table{display:none;} /* solo exportación */
+
+    /* Ocultar columna “Cargas” en llenados */
+    #llenados-combustible  .report-table th:nth-child(7),
+    #llenados-combustible  .report-table td:nth-child(7){
+      display:none;
+    }
+
+    /* —— Footer —— */
+    footer{text-align:center;padding:10px 0;}
+    .footer-line{display:inline-flex;align-items:center;gap:6px;margin:0;justify-content:center;}
+    .footer-icon{height:24px;}
+
+    /* 🆕 Sello “Última consulta de niveles” */
+    .report-buttons .last-update{
+      margin-left:auto;      /* la empuja al extremo derecho del flex */
+      align-self:center;     /* centra verticalmente respecto a los botones */
+      font-size:20px;
+      font-weight:600;
+      color:#555; 
+      white-space:nowrap;    /* evita que se parta en dos líneas */
+    }
+
+    /* —— Botón PDF en cada fila —— */
+    .report-table td .pdf-btn{
+      width:20px;
+      height:20px;
+      padding:0;
+      font-size:18px;
+      color:#fff;
+      border:none;
+      border-radius:4px;
+      background:linear-gradient(135deg,#d9534f,#c9302c);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      transition:filter .2s;
+    }
+    .report-table td .pdf-btn:hover{filter:brightness(1.1);}
+
+    /* ==============================================================
+      Contenedor y utilidades para la “Gráfica de Niveles”
+       ==============================================================*/
+    .oculto{display:none;}                         /* helper opcional */
+    #grafica-niveles-chart{
+      width:100%;
+      max-width:1400px;
+      height:500px;
+      margin:24px auto;
+    }
+  </style>
+
+  <!-- ICONOS & LIBRERÍAS -->
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css">
+
+<!-- SheetJS (Excel) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<!-- jsPDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<!-- html2canvas (no necesita defer, porque lo usará generatePdf) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<!-- Tu plantilla PDF como JS -->
+<script src="pdfplantilla.js" defer></script>
+
+<!-- Tu lógica de reportes, que llama a window.generatePdf -->
+<script src="reportes.js" defer></script>
+
+<!-- Google Charts (puede ir al final) -->
+<script src="https://www.gstatic.com/charts/loader.js"></script>
+
+
+</head>
+
+<body>
+  <section id="fuel-control-total">
+
+    <!-- :::::::::::::  BARRA STICKY  ::::::::::::: -->
+    <div class="sticky-bar">
+      <div class="sticky-header">
+        <h1>TTC FUEL CONTROL</h1>
+        <img src="logo2.png" alt="Logo" class="logo">
+      </div>
+
+      <!-- filtros principales -->
+      <div class="search-container">
+        <!-- UNIDADES -->
+        <div class="card unidades-card">
+          <div class="card-header"><span>Unidades</span><i class="fa-solid fa-truck"></i></div>
+          <div class="card-body">
+            <select id="unit-select"><option value="">-- Todas las unidades --</option></select>
+          </div>
+        </div>
+
+        <!-- PERIODO -->
+        <div class="card period-card">
+          <div class="card-header"><span>Periodo</span><i class="fa-solid fa-calendar-days"></i></div>
+          <div class="card-body">
+            <input type="date" id="date-start" class="period-input">
+            <input type="date" id="date-end"   class="period-input">
+          </div>
+        </div>
+
+        <!-- BOTONERA -->
+        <div class="card botonera-card">
+          <div class="card-header"><span>Botonera</span><i class="fa-solid fa-sliders"></i></div>
+          <div class="card-body">
+            <!-- Botonera -->
+            <button id="filter-hoy">Hoy</button>
+            <button id="filter-ayer">Ayer</button>
+            <button id="filter-mes">Mes</button>
+            <button id="clear-btn">Limpiar</button>
+          </div>
+        </div>
+
+        <!-- EXPORTAR -->
+        <button id="export-excel" title="Exportar a Excel"><i class="fa-solid fa-file-excel"></i></button>
+      </div>
+
+      <!-- SECCIONES -->
+      <div class="report-buttons">
+        <button class="report-btn" data-target="consumo-total">
+          <i class="fas fa-gas-pump"></i><i class="fas fa-chart-column fa-xs"></i>
+          Consumo&nbsp;Total
+        </button>
+
+        <button class="report-btn" data-target="consumo-ralenti">
+          <i class="fas fa-gauge"></i>
+          Consumo&nbsp;Ralentí
+        </button>
+
+        <button class="report-btn" data-target="llenados-combustible">
+          <i class="fas fa-fill-drip"></i>
+          Llenados&nbsp;de&nbsp;Combustible
+        </button>
+
+        <button class="report-btn" data-target="descargas-combustible">
+          <i class="fas fa-oil-can"></i>
+          Descargas&nbsp;de&nbsp;Combustible
+        </button>
+
+        <!--  
+        <button class="report-btn" data-target="grafica-niveles">
+          <i class="fas fa-chart-line"></i>
+          Gráficas&nbsp;de&nbsp;Niveles
+        </button>   
+        -->
+
+        <button class="report-btn" data-target="niveles-fuel">
+          <i class="fas fa-gauge-simple-high"></i>
+          Calcular&nbsp;Niveles
+        </button>
+
+        <button id="btn-mantenimiento" class="nav-btn">
+          <i class="fas fa-wrench"></i>
+          Mantenimiento
+        </button>
+
+        <!-- 🆕 Leyenda de última consulta -->
+        <span id="niveles-timestamp" class="last-update"></span>
+      </div>
+    </div>
+    <!-- ::::::::::  FIN BARRA STICKY  :::::::::: -->
+
+    <!-- ============  SECCIONES  ============ -->
+    <div class="report-section" id="consumo-total">
+      <h2>CONSUMO TOTAL</h2>
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>Unidad</th>
+            <th>Kilometraje Total</th>
+            <th>Litros Consumidos</th>
+            <th>Consumo Km/Litro</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="report-section" id="consumo-ralenti">
+      <h2>CONSUMO EN RALENTÍ</h2>
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>Unidad</th>
+            <th>Tiempo en Ralentí</th>
+            <th>Consumo (litros)</th>
+            <th>Promedio (litros/hora)</th>
+            <th>Hora</th>
+            <th>Localización</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="report-section" id="llenados-combustible">
+      <h2>LLENADOS DE COMBUSTIBLE</h2>
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>Agrupación</th>
+            <th>Fecha y Hora</th>
+            <th>Localización</th>
+            <th>Nivel inicial</th>
+            <th>Litros Cargados</th>
+            <th>Nivel final</th>
+            <th>Cargas</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="report-section" id="descargas-combustible">
+      <h2>DESCARGAS DE COMBUSTIBLE</h2>
+      <table id="descargas-table" class="report-table">
+        <thead>
+          <tr>
+            <th>Agrupación</th>
+            <th>Fecha y Hora</th>
+            <th>Localización</th>
+            <th>Nivel inicial</th>
+            <th>Litros Descargados</th>
+            <th>Nivel final</th>
+            <!-- 🆕 columna PDF -->
+            <th>PDF</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <!-- 🆕 NUEVA SECCIÓN – GRÁFICAS DE NIVELES -->
+    <div class="report-section" id="grafica-niveles">
+      <h2>GRÁFICAS DE NIVELES</h2>
+      <div id="grafica-niveles-chart"></div>
+    </div>
+
+    <div class="report-section" id="niveles-fuel">
+      <h2>NIVELES FUEL</h2>
+      <div id="gauges-dynamic"></div>
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>Agrupación</th>
+            <th>Tanque 1</th>
+            <th>Tanque 2</th>
+            <th>Nivel Total</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    <p class="footer-line">
+      <a href="https://trackingcenter.mx" target="_blank" rel="noopener" title="Visitar trackingcenter.mx">
+        <strong>TTC&nbsp;Fuel&nbsp;Control&nbsp;©&nbsp;2025</strong>
+      </a>
+    </p>
+  </footer>
+  
+
+</body>
+</html>

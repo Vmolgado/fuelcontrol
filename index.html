@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - FUEL CONTROL IA</title>
+  <link rel="icon" type="image/png" href="logo.png">
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    /* Orbitron para el resto, Bodoni Moda para el título */
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Bodoni+Moda:wght@400;700&display=swap');
+
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Orbitron',sans-serif;display:flex;height:100vh}
+
+    .left-panel{
+      width:60%;
+      background:url('imagehome.png') no-repeat center center/cover;
+      position:relative
+    }
+    .right-panel{
+      width:40%;background:#fff;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;position:relative
+    }
+
+    .fuel-title{
+      position:absolute;top:30px;left:50%;transform:translateX(-50%);
+      font-size:40px;font-family:'Bodoni Moda',serif;font-weight:400;
+      color:#c00030;letter-spacing:2px;text-transform:uppercase;text-align:center;
+      white-space:nowrap;text-shadow:2px 2px 4px rgba(0,0,0,.6);z-index:10
+    }
+
+    .login-box{width:80%;max-width:400px;margin-top:80px}
+    .login-box h2{color:#000;margin-bottom:30px;font-size:28px;text-align:center}
+
+    .input-group{
+      display:flex;align-items:center;background:linear-gradient(to bottom,#fdfdfd,#e8e8e8);
+      border:1px solid #bbb;border-radius:12px;box-shadow:inset 0 2px 4px rgba(0,0,0,.1),0 4px 6px rgba(0,0,0,.1);
+      margin:10px 0;padding:12px;position:relative;transition:box-shadow .3s ease
+    }
+    .input-group:hover{box-shadow:inset 0 2px 4px rgba(0,0,0,.2),0 6px 8px rgba(0,0,0,.15)}
+    .input-group i{color:#666;font-size:18px}
+    .input-group input{border:none;background:none;outline:none;flex:1;font-size:16px;margin-left:10px}
+    #togglePassword{position:absolute;right:12px;cursor:pointer;color:#666;font-size:18px}
+
+    .login-box button{
+      width:100%;padding:12px;margin-top:15px;background:#000;color:#fff;
+      border:none;border-radius:8px;cursor:pointer;font-size:16px
+    }
+
+    .login-box .forgot{margin-top:15px;font-size:14px;text-align:center}
+    .login-box .forgot a{
+      display:inline-block;padding:6px 14px;background:linear-gradient(90deg,#ff0040,#c00030);
+      color:#fff;border-radius:6px;text-decoration:none;transition:background .3s ease
+    }
+    .login-box .forgot a:hover{background:linear-gradient(90deg,#c00030,#8B0000)}
+
+    .error-message{color:red;font-size:16px;display:none;text-align:center;margin-top:10px}
+
+    .footer{
+      position:absolute;bottom:20px;left:50%;transform:translateX(-50%);
+      text-align:center;font-size:13px;color:#333;font-family:'Orbitron',sans-serif
+    }
+    .footer-line{display:flex;align-items:center;justify-content:center;gap:8px}
+    .footer-icon{height:24px;vertical-align:middle}
+  </style>
+</head>
+<body>
+
+  <div class="left-panel"></div>
+
+  <div class="right-panel">
+    <div class="fuel-title">Fuel Control IA</div>
+
+    <div class="login-box">
+      <h2>Bienvenido</h2>
+
+      <div class="input-group">
+        <i class="fas fa-user"></i>
+        <input type="text" id="username" placeholder="Usuario">
+      </div>
+
+      <div class="input-group">
+        <i class="fas fa-key"></i>
+        <input type="password" id="password" placeholder="Contraseña">
+        <i class="fas fa-eye" id="togglePassword"></i>
+      </div>
+
+      <button onclick="login()">Iniciar sesión</button>
+
+      <p class="forgot">
+        <a onclick="forgotPassword()">He olvidado mi contraseña</a>
+      </p>
+      <p class="error-message" id="error">Usuario o contraseña incorrectos</p>
+    </div>
+
+    <footer class="footer">
+      <p class="footer-line">
+        <a href="https://trackingcenter.mx" target="_blank" rel="noopener" title="Visitar trackingcenter.mx">
+          <img src="logofooter.png" alt="Tracking Center" class="footer-icon">
+        </a>
+        <strong>TTC Fuel Control © 2025</strong>
+      </p>
+    </footer>
+  </div>
+
+  <script>
+    /***************  CONFIGURACIÓN  ***************/
+    const SHEET_ID = '1v9tdhvtHJHHg2fR7masGKStwsu7fIRDSVZz-01ljARQ';
+    const API_KEY  = 'AIzaSyC87Q8cqDQHmfWE8crKfyLUfY_KUk78Pb4';
+    const RANGE    = 'USUARIOS!A2:C'; // A:SD  B:USUARIO  C:PASSWORD
+
+    let currentUsername = '';
+
+    /***************  LOGIN  ***************/
+    async function login () {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const errorMsg = document.getElementById('error');
+      errorMsg.style.display = 'none';
+
+      if (!username || !password) {
+        errorMsg.textContent = 'Debes ingresar usuario y contraseña';
+        errorMsg.style.display = 'block';
+        return;
+      }
+
+      try {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}?key=${API_KEY}`;
+        const res = await fetch(url).then(r => r.json());
+        const filas = res.values || [];
+
+        /* Busca la coincidencia */
+        const fila = filas.find(r => (r[1] || '').trim() === username &&
+                                     (r[2] || '').trim() === password);
+
+        if (!fila) {
+          errorMsg.textContent = 'Usuario o contraseña incorrectos';
+          errorMsg.style.display = 'block';
+          return;
+        }
+
+        /* Prefijo SD ⇒ sesión */
+        const sdPrefix = fila[0].trim();      // ej. "G772"
+        sessionStorage.setItem('SD', sdPrefix);
+        sessionStorage.setItem('USER', username);
+
+        /* Redirige al dashboard / reportes */
+        window.location.href = 'reportes.html';
+      } catch (err) {
+        console.error(err);
+        errorMsg.textContent = 'Error al conectar con la base de datos';
+        errorMsg.style.display = 'block';
+      }
+    }
+
+    /***************  UI helpers  ***************/
+    document.addEventListener('DOMContentLoaded', () => {
+      const toggle = document.getElementById('togglePassword');
+      const passwordInput = document.getElementById('password');
+
+      toggle.addEventListener('click', () => {
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        toggle.classList.toggle('fa-eye-slash');
+      });
+    });
+
+    /***************  WHATSAPP soporte  ***************/
+    function forgotPassword () {
+      const user = currentUsername || document.getElementById('username').value || 'Sin usuario';
+      const msg  = `🔒 Fuel Control IA: He olvidado mi contraseña.\nUsuario: ${user}`;
+      const phone = '524442515007';
+      const url   = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(msg)}`;
+      window.open(url, '_blank');
+    }
+  </script>
+</body>
+</html>
