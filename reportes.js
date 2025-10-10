@@ -1,4 +1,3 @@
-
 /* ---------- CONFIG ---------- */
 const SHEET_ID = '1v9tdhvtHJHHg2fR7masGKStwsu7fIRDSVZz-01ljARQ';
 const API_KEY  = 'AIzaSyC87Q8cqDQHmfWE8crKfyLUfY_KUk78Pb4';
@@ -19,6 +18,69 @@ const ROUND_INT_TABS = new Set([
   'LLENADOS DE COMBUSTIBLE',
   'DESCARGAS DE COMBUSTIBLE'
 ]);
+
+/* ========== NUEVO: helpers de sesión/filtro por SD ========== */
+const SESSION_SD_KEY = 'FC_SD'; // aquí guardamos el SD (p.ej. "G798")
+
+function getCurrentSD(){
+  // 1) SD guardado explícitamente por tu login
+  let sd = (sessionStorage.getItem(SESSION_SD_KEY) || '').trim().toUpperCase();
+  if (sd) return sd;
+
+  // 2) Intentar derivarlo del usuario en sesión (p.ej. "G798_TRAMO")
+  const userKeys = ['FC_USER','USER','USERNAME','USUARIO','login_user','current_user'];
+  for (const k of userKeys){
+    const u = (sessionStorage.getItem(k) || '').trim().toUpperCase();
+    if (u){
+      const m = u.match(/^([A-Z0-9]{4})/);  // ← toma los primeros 4
+      if (m){
+        sd = m[1];
+        sessionStorage.setItem(SESSION_SD_KEY, sd);
+        return sd;
+      }
+    }
+  }
+
+  // 3) Intentar derivarlo por URL (?user=G798_TRAMO o ?sd=G798)
+  const qs    = new URLSearchParams(location.search);
+  const uParam = (qs.get('user') || qs.get('usuario') || qs.get('u') || '').trim().toUpperCase();
+  if (uParam){
+    const m = uParam.match(/^([A-Z0-9]{4})/);
+    if (m){
+      sd = m[1];
+      sessionStorage.setItem(SESSION_SD_KEY, sd);
+      return sd;
+    }
+  }
+  const sdUrl = (qs.get('sd') || '').trim().toUpperCase();
+  if (sdUrl){
+    sessionStorage.setItem(SESSION_SD_KEY, sdUrl);
+    return sdUrl;
+  }
+
+  // 4) sin SD ⇒ no mostramos datos
+  return '';
+}
+
+// De “Agrupación” (p.ej. "G798 UNIDAD 347 COMB") toma los primeros 4 alfanuméricos
+function extractSDFromFirstCell(txt){
+  const m = (txt || '').toUpperCase().match(/[A-Z0-9]{4}/);
+  return m ? m[0] : '';
+}
+
+// Mantiene encabezado y devuelve SOLO filas del SD actual.
+// Si no hay SD en sesión, no muestra nada.
+function applySDFilter(rows){
+  const SD = getCurrentSD();
+  if (!SD) return [];
+  if (!rows || rows.length < 2) return rows || [];
+  const out = [ rows[0] ];
+  for (let i=1;i<rows.length;i++){
+    const r = rows[i];
+    if (extractSDFromFirstCell(r[0]||'') === SD) out.push(r);
+  }
+  return out;
+}
 
 /* ---------- GLOBALES ---------- */
 let rowsLlenados  = [];        // filas hoja “Llenados…”
@@ -58,36 +120,36 @@ function isEventRow(tab, row, h) {
 
   /* ===== LLENADOS DE COMBUSTIBLE ============================================ */
   if (tab === 'LLENADOS DE COMBUSTIBLE') {
-    const il = h.findIndex(c => c.includes('litros cargados'));
-    const ic = h.findIndex(c => c.includes('cargas'));
+    const find = kws => h.findIndex(c => kws.some(k => c.includes(k)));
+    const il = find(['litros cargados','lts cargados','cargados']);
+    const ic = find(['cargas']);
     return (il > -1 && ic > -1) ? (+row[il] > 0 || +row[ic] > 0) : true;
   }
 
   /* ===== DESCARGAS DE COMBUSTIBLE =========================================== */
   if (tab === 'DESCARGAS DE COMBUSTIBLE') {
 
-    /* 1. descarta si la unidad iba en movimiento ----------------------------- */
-    const vi = h.findIndex(c => c.includes('velocidad inicial'));
-    const vf = h.findIndex(c => c.includes('velocidad final'));
+    // 1. descarta si la unidad iba en movimiento
+    const find = kws => h.findIndex(c => kws.some(k => c.includes(k)));
+    const vi = find(['velocidad inicial','vel. inicial','v inicial']);
+    const vf = find(['velocidad final','vel. final','v final']);
     if ((vi > -1 && +row[vi] > 0) || (vf > -1 && +row[vf] > 0)) return false;
 
-    /* 2. obtén litros descargados y duración del evento ---------------------- */
-    const il      = h.findIndex(c => c.includes('litros descargados'));
-    const durIdx  = h.findIndex(c => c.includes('tiempo descarga'));
+    // 2. litros y duración
+    const il      = find(['litros descargados','lts descargados','descargados']);
+    const durIdx  = find(['tiempo descarga','tiempo de descarga','duración descarga','duracion descarga']);
+    const litros  = il     > -1 ? (+row[il]     || 0)          : 0;
 
-    const litros  = il     > -1 ? (+row[il]     || 0)           : 0;
-    const durSeg  = durIdx > -1 ?  durToSec(row[durIdx] || '')  : 0;
+    // duración: solo si la columna existe
+    if (durIdx > -1) {
+      const durSeg  = durToSec(row[durIdx] || '');
+      if (durSeg === 0) return false;                         
 
-    /* —— regla extra: duración cero → descartar ———————————————— */
-  if (durSeg === 0) return false;                         
+      const MUY_CORTO = durSeg <  300 && litros < 20;   // <5 min y <20 L
+      const MUY_LARGO = durSeg > 3600 && litros < 50;   // >1 h  y <50 L
+      if (MUY_CORTO || MUY_LARGO) return false;
+    }
 
-    /* 3. reglas de descarte basadas en litros y duración --------------------- */
-    const MUY_CORTO = durSeg && durSeg <  300 && litros < 20;   // <5 min y <20 L
-    const MUY_LARGO = durSeg && durSeg > 3600 && litros < 50;   // >1 h  y <50 L
-
-    if (MUY_CORTO || MUY_LARGO) return false;   // probable ruido → fuera
-
-    /* 4. si llega aquí y hay litros, se mantiene ----------------------------- */
     return litros > 0;
   }
 
@@ -220,8 +282,6 @@ document.body.appendChild(wrapper);
 
 /* ---------- Stub de refreshDescargasUI (evita ReferenceError) ---------- */ 
 function refreshDescargasUI(){
-  /* Sustitúyelo por tu lógica real si ya tienes un mapa
-     que deba actualizar marcadores, bounds, etc.            */
   if(typeof updateDescargasMapMarkers==='function'){
     updateDescargasMapMarkers();
   }
@@ -253,10 +313,10 @@ function fillTable(sel, rows, tab) {
     if (horaSet.has(clave)) return;
     horaSet.add(clave);
 
-    // Excepción para TOTAL y NIVELES (una sola fila por unidad)
-    if (!seen.has(unidad)) {
+    // Compactar SOLO en TOTAL y NIVELES (no brinques 1ª fila en otras)
+    if (tab === 'CONSUMO TOTAL' || tab === 'NIVELES FUEL') {
+      if (seen.has(unidad)) return;
       seen.add(unidad);
-      if (tab !== 'CONSUMO TOTAL' && tab !== 'NIVELES FUEL') return;
     }
 
     const tr = document.createElement('tr');
@@ -321,7 +381,6 @@ if (tab === 'DESCARGAS DE COMBUSTIBLE') {
   tr.appendChild(tdPdf);
 }
 
-// aquí termina tu .forEach(r => { … })
 tbody.appendChild(tr);
 }); 
 
@@ -448,9 +507,7 @@ function buildNivelDataset(unidad, start, end){
 
   /* —— construir DataTable —— */
   const data=[['Hora','Nivel',{role:'style'},{role:'annotation'}]];
-  filasPorHora.forEach((f,hr)=>{
-    data.push([`${hr}:00`, f.nivel, f.color, f.anot]);
-  });
+  filasPorHora.forEach((f,hr)=>{ data.push([`${hr}:00`, f.nivel, f.color, f.anot]); });
   return google.visualization.arrayToDataTable(data);
 }
 
@@ -593,10 +650,12 @@ async function loadAll(){
   try{
     /* 1. Llenar cada tabla ----------------------------------------- */
     for (const [t, s] of Object.entries(TAB_MAP)){
-      const rows = await fetchTab(t);
+      const rowsBrutos = await fetchTab(t);
+      const rows       = applySDFilter(rowsBrutos);   // 🔐 FILTRO POR SD
+
       fillTable(s, rows, t);
 
-      /* 🆕  almacenar filas para la gráfica */
+      /* almacenar filas (YA filtradas) para la gráfica */
       if(t==='LLENADOS DE COMBUSTIBLE')   rowsLlenados  = rows;
       if(t==='DESCARGAS DE COMBUSTIBLE')  rowsDescargas = rows;
     }
@@ -606,9 +665,9 @@ async function loadAll(){
 
     /* 3. Si la sección activa es “Descargas”, dibujar pines -------- */
     const secDesc = document.getElementById('descargas-combustible');
-    if (secDesc.classList.contains('active')){
-      if (!descargasMap) initDescargasMap();   // lo crea solo la 1ª vez
-      updateDescargasMapMarkers();             // limpia y añade marcadores
+    if (secDesc && secDesc.classList.contains('active')){
+      if (!descargasMap && typeof initDescargasMap==='function') initDescargasMap();
+      if (typeof updateDescargasMapMarkers==='function') updateDescargasMapMarkers();
     }
 
     /* 4. Si la sección activa es la gráfica, dibujarla ------------- */
@@ -650,7 +709,6 @@ function filtrarFilas(){
   if(noFilters){
     a.querySelectorAll('tbody tr').forEach(r=>r.style.display='none');
     if(a.id==='niveles-fuel') document.getElementById('gauges-dynamic').innerHTML='';
-    /* 🆕 limpia gráfica si es la sección */
     if(a.id==='grafica-niveles') document.getElementById('grafica-niveles-chart').innerHTML='';
     return;
   }
@@ -687,14 +745,13 @@ function filtrarFilas(){
   });
 
   if(a.id==='niveles-fuel') renderNivelesFuelGauges();
-  if(a.id==='grafica-niveles') refreshGraficaNiveles();     // 🆕
+  if(a.id==='grafica-niveles') refreshGraficaNiveles();
   if (a.id === 'descargas-combustible') refreshDescargasUI();
 }
 
 /* ---- Botones de sección ---- */
 document.querySelectorAll('.report-btn').forEach(btn=>{
   btn.addEventListener('click',()=>{
-    /* activar sección + estilos */
     document.querySelectorAll('.report-section').forEach(s=>s.classList.remove('active'));
     document.querySelectorAll('.report-btn').forEach(b=>b.classList.remove('active'));
     document.getElementById(btn.dataset.target).classList.add('active');
@@ -703,10 +760,7 @@ document.querySelectorAll('.report-btn').forEach(btn=>{
     refreshUnitOptions();
     filtrarFilas();
 
-     /* 👇 NUEVO: si la pestaña es Descargas → refrescar mapa */
     if (btn.dataset.target === 'descargas-combustible') refreshDescargasUI();
-
-    /* 👇 NUEVO: si la pestaña es la gráfica → dibujarla */
     if (btn.dataset.target === 'grafica-niveles') refreshGraficaNiveles();
 
     if(btn.dataset.target==='niveles-fuel'){
