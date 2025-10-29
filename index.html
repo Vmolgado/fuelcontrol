@@ -8,7 +8,6 @@
   <link rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <style>
-    /* Orbitron para el resto, Bodoni Moda para el título */
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
     @import url('https://fonts.googleapis.com/css2?family=Bodoni+Moda:wght@400;700&display=swap');
 
@@ -107,14 +106,12 @@
   </div>
 
   <script>
-    /***************  CONFIGURACIÓN  ***************/
     const SHEET_ID = '1v9tdhvtHJHHg2fR7masGKStwsu7fIRDSVZz-01ljARQ';
     const API_KEY  = 'AIzaSyC87Q8cqDQHmfWE8crKfyLUfY_KUk78Pb4';
-    const RANGE    = 'USUARIOS!A2:C'; // A:SD  B:USUARIO  C:PASSWORD
+    const RANGE    = 'USUARIOS!A2:C';
 
     let currentUsername = '';
 
-    /***************  LOGIN  ***************/
     async function login () {
       const username = document.getElementById('username').value.trim();
       const password = document.getElementById('password').value.trim();
@@ -132,7 +129,6 @@
         const res = await fetch(url).then(r => r.json());
         const filas = res.values || [];
 
-        /* Busca la coincidencia */
         const fila = filas.find(r => (r[1] || '').trim() === username &&
                                      (r[2] || '').trim() === password);
 
@@ -142,12 +138,10 @@
           return;
         }
 
-        /* Prefijo SD ⇒ sesión */
-        const sdPrefix = fila[0].trim();      // ej. "G772"
+        const sdPrefix = fila[0].trim();
         sessionStorage.setItem('SD', sdPrefix);
         sessionStorage.setItem('USER', username);
 
-        /* Redirige al dashboard / reportes */
         window.location.href = 'reportes.html';
       } catch (err) {
         console.error(err);
@@ -156,7 +150,6 @@
       }
     }
 
-    /***************  UI helpers  ***************/
     document.addEventListener('DOMContentLoaded', () => {
       const toggle = document.getElementById('togglePassword');
       const passwordInput = document.getElementById('password');
@@ -168,7 +161,6 @@
       });
     });
 
-    /***************  WHATSAPP soporte  ***************/
     function forgotPassword () {
       const user = currentUsername || document.getElementById('username').value || 'Sin usuario';
       const msg  = `🔒 Fuel Control IA: He olvidado mi contraseña.\nUsuario: ${user}`;
