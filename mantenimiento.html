@@ -3,13 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <title>Módulo de Mantenimiento</title>
-  <!-- Carga de Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- Font Awesome para íconos -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="icon" type="image/png" href="logo.png">
   <style>
-    /* RESET BÁSICO */
     * {
       margin: 0;
       padding: 0;
@@ -22,38 +19,31 @@
       flex-direction: column;
       min-height: 100vh;
     }
-    /* ENCABEZADO */
     header {
       background-color: #002f4b;
       color: #fff;
       padding: 1rem;
       text-align: center;
     }
-    /* ---- Encabezado centrado con logo a la izquierda ---- */
 header{
-  display:flex;             
-  align-items:center;        
-  justify-content:center;    
-  position:relative;         
-  padding:0.5rem 1rem;       
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+  padding:0.5rem 1rem;
 }
-
 .logo{
-  height:40px;               
-  position:absolute;         
-  left:1rem;                 
+  height:40px;
+  position:absolute;
+  left:1rem;
 }
-
 .header-title{
-  margin:0;                  
+  margin:0;
 }
-
-    /* CONTENEDOR PRINCIPAL */
     .container {
       display: flex;
       flex: 1;
     }
-    /* MENÚ LATERAL */
     .sidebar {
       width: 130px;
       background-color: #0b3c5d;
@@ -79,7 +69,6 @@ header{
     .sidebar ul li a:hover {
       background-color: #1c5a7b;
     }
-    /* CONTENIDO PRINCIPAL */
     .main-content {
       flex: 1;
       padding: 1rem;
@@ -90,21 +79,19 @@ header{
       font-weight: bold;
       color: #333;
     }
-    /* CONTENEDOR DE TARJETAS */
     .cards-container {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
       gap: 1rem;
       margin-bottom: 1rem;
     }
-    /* TARJETA GENÉRICA */
     .card {
       background-color: #fff;
       border-radius: 5px;
       padding: 1rem;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
       text-align: center;
-      cursor: pointer;              
+      cursor: pointer;
     }
     .card h3 {
       margin-bottom: 0.5rem;
@@ -114,7 +101,6 @@ header{
       font-size: 1.2rem;
       font-weight: bold;
     }
-    /* TARJETA Solicitudes Agendadas (gradiente amarillo) */
     #cardAgendadas {
       border-radius: 5px;
       background: linear-gradient(180deg, #fdd835 0%, #fbc02d 100%);
@@ -122,7 +108,6 @@ header{
     }
     #cardAgendadas h3,
     #cardAgendadas p { color:#fff !important; }
-    /* TARJETA Solicitudes Completadas (gradiente verde) */
     #cardCompletadas {
       border-radius: 5px;
       background: linear-gradient(180deg, #006400 0%, #00b300 100%);
@@ -130,7 +115,6 @@ header{
     }
     #cardCompletadas h3,
     #cardCompletadas p { color:#fff !important; }
-    /* TARJETA Solicitudes Canceladas (gradiente rojo) */
     #cardCanceladas {
       border-radius: 5px;
       background: linear-gradient(180deg, #ff0040 0%, #800020 100%);
@@ -138,7 +122,6 @@ header{
     }
     #cardCanceladas h3,
     #cardCanceladas p { color:#fff !important; }
-    /* TARJETA Unidades Conectadas */
     #cardActivas {
       border-radius: 5px;
       background: linear-gradient(180deg, #006400 0%, #00b300 100%);
@@ -146,7 +129,6 @@ header{
     }
     #cardActivas h3,
     #cardActivas p { color:#fff !important; }
-    /* TARJETA Unidades sin Conexión */
     #cardSinConexion {
       border-radius: 5px;
       background: linear-gradient(180deg, #ff0040 0%, #800020 100%);
@@ -154,17 +136,13 @@ header{
     }
     #cardSinConexion h3,
     #cardSinConexion p { color:#fff !important; }
-
-    /* TARJETA Unidades con Sensor Desconectado (nueva) */
     #cardSensores{
-      border-radius:5px;                                   /* estilo */
+      border-radius:5px;
       background:linear-gradient(180deg,#ffb300 0%,#ff6f00 100%);
       color:#fff;
     }
     #cardSensores h3,
-    #cardSensores p{ color:#fff !important; }              /* texto blanco */
-
-    /* BOTÓN SOLICITAR SERVICIO */
+    #cardSensores p{ color:#fff !important; }
     .service-button {
       display: block;
       width: 100%;
@@ -182,7 +160,6 @@ header{
       transition: background 0.3s;
     }
     .service-button:hover { background-color:#1ebe5d; }
-    /* ESTILO PARA LA SECCIÓN DE FLOTILLA */
     #flotillaContainer {
       display:grid;
       grid-template-columns:repeat(3,1fr);
@@ -193,16 +170,13 @@ header{
       box-shadow:0 2px 5px rgba(0,0,0,0.1);
       margin-top:1rem;
     }
-    /* PIE DE PÁGINA */
     footer {
       background-color:#002f4b;
       color:#fff;
       text-align:center;
       padding:0.5rem;
     }
-    /* OCULTO POR DEFECTO */
     .oculto { display:none; }
-    /* ---- Círculos con efecto 3D ---- */
 .status-dot{
   display:inline-block;
   width:14px;height:14px;
@@ -222,7 +196,6 @@ header{
 .sidebar ul li a{display:flex;align-items:center;}
 .sidebar ul li a .label{display:none;margin-left:8px;}
 .sidebar:hover ul li a .label{display:inline;}
-/* —— Footer —— */
 footer{text-align:center;padding:10px 0;}
 .footer-line{display:inline-flex;align-items:center;gap:6px;margin:0;justify-content:center;}
 .footer-icon{height:24px;}
@@ -236,7 +209,6 @@ footer{text-align:center;padding:10px 0;}
 #flotillaContainer.oculto{
   display:none !important;height:0 !important;padding:0 !important;margin:0 !important;border:none !important;box-shadow:none !important;
 }
-/* ---- Enlace activo ---- */
 .sidebar ul li a.active{
   background-color:#004080;color:#fff;font-weight:bold;
   box-shadow:inset 4px 0 0 #00FFFF;transition:background .2s,box-shadow .2s;
@@ -251,7 +223,6 @@ footer{text-align:center;padding:10px 0;}
   </header>
 
   <div class="container">
-    <!-- MENÚ LATERAL -->
     <aside class="sidebar">
       <h2></h2>
       <ul>
@@ -273,13 +244,10 @@ footer{text-align:center;padding:10px 0;}
       </ul>
     </aside>
 
-    <!-- CONTENIDO PRINCIPAL -->
     <main class="main-content">
       <div class="section-title"></div>
-      
-      <!-- TARJETAS DE RESUMEN -->
+
       <div class="cards-container">
-        <!-- Tarjetas de Solicitudes -->
         <div class="card oculto" id="cardAgendadas">
           <h3>Solicitudes Agendadas</h3><p>1</p>
         </div>
@@ -289,14 +257,10 @@ footer{text-align:center;padding:10px 0;}
         <div class="card oculto" id="cardCanceladas">
           <h3>Solicitudes Canceladas</h3><p>5</p>
         </div>
-
-        <!-- Unidades Conectadas -->
         <div class="card oculto" id="cardActivas">
           <h3><i class="fas fa-satellite-dish" style="margin-right:5px;"></i>Unidades Conectadas</h3>
           <p>0</p>
         </div>
-
-        <!-- Unidades sin Conexión -->
         <div class="card oculto" id="cardSinConexion">
           <h3>
             <span class="fa-stack" style="font-size:1.1rem;margin-right:5px;">
@@ -307,8 +271,6 @@ footer{text-align:center;padding:10px 0;}
           </h3>
           <p>0</p>
         </div>
-
-        <!-- ★ NUEVA TARJETA: Unidades con sensor desconectado -->
         <div class="card oculto" id="cardSensores">
           <h3>
             <i class="fas fa-exclamation-circle" style="margin-right:5px;"></i>
@@ -318,10 +280,7 @@ footer{text-align:center;padding:10px 0;}
         </div>
       </div>
 
-      <!-- CONTENEDOR PARA MOSTRAR LOS DATOS DE FLOTILLA -->
-      <div id="flotillaContainer" class="oculto">
-        <!-- Aquí se cargarán los datos -->
-      </div>
+      <div id="flotillaContainer" class="oculto"></div>
     </main>
   </div>
 
@@ -334,7 +293,6 @@ footer{text-align:center;padding:10px 0;}
     </p>
   </footer>
 
-  <!-- Archivo JS con la lógica de la app -->
   <script src="mantenimiento.js"></script>
 
 </body>
